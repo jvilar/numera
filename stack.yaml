@@ -1,0 +1,11 @@
+resolver: lts-12.1
+
+packages:
+- .
+- location:
+     git: https://github.com/jvilar/jmvOptions.git
+     commit: 5ddff6621f5f76304340c8431a01b0535c42e313
+  extra-dep: true
+
+extra-deps:
+- shh-0.3.0.1@sha256:a49df13f3d5bf717db813ddf899419d98f8366c7fd7bbf6e8692fc8d05dde7bb

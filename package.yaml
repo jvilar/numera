@@ -1,0 +1,21 @@
+name: numera
+version: 0.1.0.0
+license:             GPL-2
+author:              "Juan Miguel Vilar"
+maintainer:          "jvilar@uji.es"
+copyright:           "2019 Juan Miguel Vilar"
+category:            utilities
+
+dependencies:
+- base >= 4.7 && < 5
+
+executables:
+  numera:
+    main: numera.hs
+    dependencies:
+    - containers
+    - filepath
+    - Glob
+    - jmvOptions >= 0.2
+    - lens
+    - shh
