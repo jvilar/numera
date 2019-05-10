@@ -14,9 +14,12 @@ import System.IO(hPutStrLn, stderr)
 
 $(loadExe Absolute "mv")
 
+data Action = Number | Undo
+
 data Options = Options { _help :: Bool
                        , _dry_run :: Bool
                        , _everyThing :: Bool
+                       , _action :: Action
                        , _files :: [FilePath]
                        }
 
@@ -25,6 +28,7 @@ makeLenses ''Options
 defaultOptions = Options { _help = False
                          , _dry_run = False
                          , _everyThing = False
+                         , _action = Number
                          , _files = []
                          }
 
@@ -42,6 +46,7 @@ options = processOptions $ do
   'h' ~: "help" ==> NoArg (set help True) ~: "Esta ayuda."
   'n' ~: "dry-run" ==> NoArg (set dry_run True) ~: "Solo muestra qué renombraría, pero no lo hace."
   't' ~: "todo" ==> NoArg (set everyThing True) ~: "Renombra todo. (Por defecto, solo los ficheros sin un número delante de la extensión)"
+  'u' ~: "undo" ==> NoArg (set action Undo) ~: "Elimina el número del fichero (si lo tiene y no existe el fichero sin él)"
 
 getOptions :: IO Options
 getOptions = do
@@ -77,6 +82,11 @@ mkGlob (path, ext) = path ++ ".<->" ++ ext
 addNumber :: Int -> (FilePath, String) -> FilePath
 addNumber n (path, ext) = concat [path, ".", show n, ext]
 
+takeOutNumber :: FilePath -> FilePath
+takeOutNumber fp = let
+  (fp2, ext) = splitExtension fp
+  in dropExtension fp2 ++ ext
+
 generateNumber :: FilePath -> IO FilePath
 generateNumber fp = do
   let pe = splitExtension fp
@@ -86,13 +96,18 @@ generateNumber fp = do
           else maximum existing + 1
   return $ addNumber n pe
 
-process :: Options -> FilePath -> IO ()
-process opts fp = when (opts ^. everyThing || not (hasNumber fp)) $ do
-  fp2 <- generateNumber fp
-  if opts ^. dry_run
+move :: Options -> FilePath -> FilePath -> IO ()
+move opts fp fp2 = if opts ^. dry_run
     then putStrLn $ concat [fp, " -> ", fp2]
-    else mv fp fp2
+    else case opts ^. action of
+           Number -> mv fp fp2
+           Undo -> mv "-n" fp fp2
+
+process :: Action -> Options -> FilePath -> IO ()
+process Number opts fp = when (opts ^. everyThing || not (hasNumber fp)) $
+   generateNumber fp >>= move opts fp
+process Undo opts fp = when (hasNumber fp) $ move opts fp $ takeOutNumber fp
 
 main = do
   opts <- getOptions
-  forM_ (opts ^. files) $ process opts
+  forM_ (opts ^. files) $ process (opts ^. action) opts
